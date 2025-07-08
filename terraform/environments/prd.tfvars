@@ -1,0 +1,6 @@
+resource_group_name  					= "az-<INICIALES>-prd-de-rg-dataops"
+location             					= "East US"
+storage_account_name 					= "az<INICIALES>prddedlslake"
+adf_name             					= "az-<INICIALES>-prd-de-dfc-etl"
+kv_name              					= "az-<INICIALES>-prd-de-kvt-key"
+tenant_id            					= "<TENANT>"

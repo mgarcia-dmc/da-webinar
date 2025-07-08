@@ -1,0 +1,35 @@
+trigger:
+  branches:
+    include:
+      - adf_publish
+
+variables:
+  resourceGroupName: az-<INICIALES>-prd-de-rg-dataops
+  dataFactoryName: az-<INICIALES>-prd-de-dfc-etl
+  location: eastus
+
+stages:
+- stage: DeployADF
+  displayName: 'Deploy ADF to Production'
+  jobs:
+  - job: Deploy
+    displayName: 'ARM Deployment'
+    pool:
+      name: 'default'
+      vmImage: 'ubuntu-latest'
+    steps:
+    - checkout: self
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'CONEXION_AZURE'  # nombre del service connection
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          echo "Desplegando Azure Data Factory a $dataFactoryName"
+
+          az deployment group create \
+            --resource-group $(resourceGroupName) \
+            --template-file az-<INICIALES>-dev-de-dfc-etl/ARMTemplateForFactory.json \
+            --parameters az-<INICIALES>-dev-de-dfc-etl/ARMTemplateParametersForFactory_prd.json \
+                         factoryName=$(dataFactoryName)

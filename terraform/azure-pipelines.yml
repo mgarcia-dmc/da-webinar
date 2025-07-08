@@ -1,0 +1,99 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  name: 'default'
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: environment_dev
+    value: 'dev'
+  - name: environment_prod
+    value: 'prd'
+
+stages:
+  # ------------------- Etapa 1: Despliegue en Desarrollo -------------------
+  - stage: Deploy_Dev
+    displayName: "Despliegue en Desarrollo"
+    jobs:
+      - job: DeployDev
+        displayName: "Deploy en Entorno de Desarrollo"
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'AzureServiceConnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az --version
+
+          - script: |
+              terraform init -backend-config="key=terraform-dev.tfstate"
+            displayName: 'Inicializar Terraform'
+
+          - script: |
+              terraform validate
+            displayName: 'Validar Terraform'
+
+          - script: |
+              terraform plan -var-file=environments/$(environment_dev).tfvars -out=tfplan
+            displayName: 'Plan de Terraform (Desarrollo)'
+
+          - script: |
+              terraform apply -auto-approve tfplan
+            displayName: 'Aplicar Terraform (Desarrollo)'
+
+  # ------------------- Etapa 2: Solicitud de Aprobación -------------------
+  - stage: Approval
+    displayName: "Aprobación para Despliegue en Producción"
+    jobs:
+      - job: ManualApproval
+        displayName: "Aprobación Manual"
+        pool: server
+        steps:
+          - task: ManualValidation@0
+            displayName: "Revisión Manual"
+            inputs:
+              notifyUsers: 'mgarcia.dmc@gmail.com'
+              instructions: 'Por favor, revisa el entorno de Desarrollo antes de proceder con el despliegue en Producción.'
+              timeoutInMinutes: '2880'
+              onTimeout: 'reject'
+
+  # ------------------- Etapa 3: Despliegue en Producción -------------------
+  - stage: Deploy_Prod
+    displayName: "Despliegue en Producción"
+    dependsOn: Approval
+    condition: succeeded('Approval')
+    jobs:
+      - job: DeployProd
+        displayName: "Deploy en Entorno de Producción"
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'AzureServiceConnection'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az --version
+
+          - script: |
+              terraform init -backend-config="key=terraform-prd.tfstate"
+            displayName: 'Inicializar Terraform'
+
+          - script: |
+              terraform validate
+            displayName: 'Validar Terraform'
+
+          - script: |
+              terraform plan -var-file=environments/$(environment_prod).tfvars -out=tfplan
+            displayName: 'Plan de Terraform (Producción)'
+
+          - script: |
+              terraform apply -auto-approve tfplan
+            displayName: 'Aplicar Terraform (Producción)'

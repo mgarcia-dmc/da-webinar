@@ -1,0 +1,5 @@
+INICIALES=mg
+SUSCRIPCION=0000-1111-2222-3333
+TENANT=tenant-id-123
+DEVOPS=https://dev.azure.com/mgg
+PAT=xxxxxxxxxxxxxxxxxxxxxxxx
